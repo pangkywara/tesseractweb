@@ -10,9 +10,17 @@ services:
     rootDir: backend # Specify the subdirectory for the backend
     plan: free # Optional: specify your Render plan (free tier may have limitations)
     buildCommand: |
-      pip install --upgrade pip
+      apt-get update && apt-get install -y --no-install-recommends \
+        tesseract-ocr-eng \
+        tesseract-ocr-ind \
+        tesseract-ocr \
+        libgl1-mesa-glx \
+        libglib2.0-0 && \
+      apt-get clean && \
+      rm -rf /var/lib/apt/lists/* && \
+      pip install --upgrade pip && \
       pip install -r requirements.txt
-    startCommand: gunicorn backend.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11 # Specify a Python version supported by Render
@@ -27,38 +35,17 @@ services:
       - key: TESSDATA_PREFIX
         value: /usr/share/tesseract-ocr/5/tessdata # Default path after installing packages
       - key: FRONTEND_URL # Add the frontend URL for CORS
-        value: https://pangkywara.xyz
+        value: https://pangkywara.xyz # NOTE: This will need to be updated later!
     # System packages needed for Tesseract and OpenCV
     # Note: Version might vary, check Render's supported packages
     # Using '5' for tesseract packages as it's the latest major version often available
-    nativeEnvironment:
-      packageInstallCommand: apt-get update && apt-get install -y --no-install-recommends
-      systemPackages:
-        - tesseract-ocr-eng
-        - tesseract-ocr-ind
-        - tesseract-ocr # Installs tesseract itself
-        - libgl1-mesa-glx # Dependency for OpenCV
-        - libglib2.0-0 # Dependency for OpenCV
+    # nativeEnvironment: # REMOVED - Integrated into buildCommand
+    #   packageInstallCommand: apt-get update && apt-get install -y --no-install-recommends
+    #   systemPackages:
+    #     - tesseract-ocr-eng
+    #     - tesseract-ocr-ind
+    #     - tesseract-ocr # Installs tesseract itself
+    #     - libgl1-mesa-glx # Dependency for OpenCV
+    #     - libglib2.0-0 # Dependency for OpenCV
 
-  # Frontend Service (Next.js)
-  - type: web # Or use 'static' if your Next.js app exports to static files
-    name: pbo-tesseract-frontend
-    env: node
-    region: singapore # Optional: match backend region
-    rootDir: frontend # Specify the subdirectory for the frontend
-    plan: free # Optional
-    buildCommand: |
-      npm install
-      npm run build
-    # Render typically detects Next.js and uses `npm start` or similar automatically.
-    # If using static export, set `publishDirectory: out` and remove startCommand.
-    # startCommand: npm start # Usually not needed for Next.js on Render
-    envVars:
-      - key: NODE_VERSION
-        value: 18 # Specify a Node.js version
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: pbo-tesseract-backend # Name of the backend service defined above
-          envVarKey: RENDER_EXTERNAL_URL # Render provides this env var with the service's public URL
-      # Add other environment variables if needed (e.g., for analytics) 
+# REMOVED Frontend Service Definition 
