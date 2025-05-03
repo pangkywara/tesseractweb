@@ -1,0 +1,11 @@
+\
+fastapi
+uvicorn[standard]
+python-multipart
+supabase
+Pillow
+pytesseract
+python-dotenv
+opencv-python
+pandas
+gunicorn 
