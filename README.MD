@@ -1,133 +1,133 @@
-# Kelompok 3 - Tesseract OCR Web App
+# Kelompok 3 - Aplikasi Web Tesseract OCR
 
-[![Demo](https://img.shields.io/badge/Demo-Visit%20Live%20App-blue?style=for-the-badge&logo=vercel)](https://pangkywara.xyz)
+[![Demo](https://img.shields.io/badge/Demo-Kunjungi%20Aplikasi%20Langsung-blue?style=for-the-badge&logo=vercel)](https://pangkywara.xyz)
 
-This project is a web application that performs Optical Character Recognition (OCR) on uploaded images using Tesseract. It features a Next.js frontend and a FastAPI backend, with results optionally saved to a Supabase database.
+Proyek ini adalah aplikasi web yang melakukan Pengenalan Karakter Optik (OCR) pada gambar yang diunggah menggunakan Tesseract. Aplikasi ini memiliki frontend Next.js dan backend FastAPI, dengan hasil yang secara opsional dapat disimpan ke database Supabase.
 
-## Features
+## Fitur
 
-*   **Image Upload:** Upload JPEG/PNG images via drag-and-drop or file selector.
-*   **Multi-language OCR:** Supports English (`eng`) and Indonesian (`ind`) text recognition.
-*   **Bounding Box Display:** Shows recognized words overlaid on the processed image.
-*   **Text Extraction:** Provides the full extracted text and allows copying individual words.
-*   **Database Integration (Optional):** Option to save extracted text results to Supabase.
-*   **Dockerized Backend:** Backend is containerized with Docker for deployment consistency.
-*   **Image Type Detection:** Allows specifying if the image is a general document or a chat screenshot for potentially different preprocessing/PSM settings.
+*   **Unggah Gambar:** Unggah gambar JPEG/PNG melalui seret dan lepas (drag-and-drop) atau pemilih file.
+*   **OCR Multi-bahasa:** Mendukung pengenalan teks bahasa Inggris (`eng`) dan Indonesia (`ind`).
+*   **Tampilan Kotak Pembatas (Bounding Box):** Menampilkan kata-kata yang dikenali di atas gambar yang telah diproses.
+*   **Ekstraksi Teks:** Menyediakan teks lengkap yang diekstraksi dan memungkinkan penyalinan kata per kata.
+*   **Integrasi Database (Opsional):** Opsi untuk menyimpan hasil teks yang diekstraksi ke Supabase.
+*   **Backend dalam Docker:** Backend dikemas dalam kontainer Docker untuk konsistensi deployment.
+*   **Deteksi Jenis Gambar:** Memungkinkan penentuan apakah gambar adalah dokumen umum atau tangkapan layar obrolan (chat) untuk pengaturan pra-pemrosesan/PSM yang mungkin berbeda.
 
-## Technology Stack
+## Tumpukan Teknologi (Technology Stack)
 
 *   **Frontend:** Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
 *   **Backend:** FastAPI, Python, Pytesseract, OpenCV-Python, Uvicorn, Gunicorn
 *   **Database:** Supabase (PostgreSQL)
-*   **Deployment:** Docker, Render (or similar platform)
+*   **Deployment:** Docker, Render (atau platform serupa)
 
-## Setup and Installation
+## Penyiapan dan Instalasi
 
-### Prerequisites
+### Prasyarat
 
-*   Node.js (v18 or later recommended)
-*   npm or pnpm or yarn
-*   Python (v3.11 recommended)
+*   Node.js (direkomendasikan v18 atau lebih baru)
+*   npm atau pnpm atau yarn
+*   Python (direkomendasikan v3.11)
 *   pip
 *   Git
-*   Docker (for building/running the backend container)
-*   Supabase Account (optional, for database saving)
-*   Tesseract Installation (for local backend development - see [Tesseract Docs](https://tesseract-ocr.github.io/tessdoc/Installation.html))
+*   Docker (untuk membangun/menjalankan kontainer backend)
+*   Akun Supabase (opsional, untuk penyimpanan database)
+*   Instalasi Tesseract (untuk pengembangan backend lokal - lihat [Dokumentasi Tesseract](https://tesseract-ocr.github.io/tessdoc/Installation.html))
 
-### Installation Steps
+### Langkah Instalasi
 
-1.  **Clone the repository:**
+1.  **Kloning repositori:**
     ```bash
-    git clone https://github.com/pangkywara/tesseractweb.git
-    cd <repository-folder>
+    git clone <url-repositori-anda>
+    cd <folder-repositori>
     ```
 
-2.  **Backend Setup:**
+2.  **Penyiapan Backend:**
     ```bash
     cd backend
 
-    # Create and activate a virtual environment (recommended)
+    # Buat dan aktifkan lingkungan virtual (direkomendasikan)
     python -m venv .venv
-    # On Windows
+    # Di Windows
     .\.venv\Scripts\activate
-    # On macOS/Linux
+    # Di macOS/Linux
     # source .venv/bin/activate
 
-    # Install Python dependencies
+    # Instal dependensi Python
     pip install -r requirements.txt
 
-    # Create a .env file from .env.example (if provided) or manually
-    # Add your Supabase URL and Anon Key if using the DB feature
-    # Example .env:
-    # SUPABASE_URL="your_supabase_url"
-    # SUPABASE_ANON_KEY="your_supabase_anon_key"
-    # ALLOWED_ORIGINS="http://localhost:3000,https://your-frontend-domain.com" # Add your frontend URL for CORS
+    # Buat file .env dari .env.example (jika disediakan) atau secara manual
+    # Tambahkan URL Supabase dan Kunci Anon Anda jika menggunakan fitur DB
+    # Contoh .env:
+    # SUPABASE_URL="url_supabase_anda"
+    # SUPABASE_ANON_KEY="kunci_anon_supabase_anda"
+    # ALLOWED_ORIGINS="http://localhost:3000,https://domain-frontend-anda.com" # Tambahkan URL frontend Anda untuk CORS
 
     cd ..
     ```
-    *Note: For local backend development without Docker, ensure Tesseract is installed and its `tessdata` folder (containing `eng.traineddata` and `ind.traineddata`) is accessible. You might need to set the `TESSDATA_PREFIX` environment variable locally.* 
+    *Catatan: Untuk pengembangan backend lokal tanpa Docker, pastikan Tesseract terinstal dan folder `tessdata`-nya (berisi `eng.traineddata` dan `ind.traineddata`) dapat diakses. Anda mungkin perlu mengatur variabel lingkungan `TESSDATA_PREFIX` secara lokal.*
 
-3.  **Frontend Setup:**
+3.  **Penyiapan Frontend:**
     ```bash
     cd frontend
 
-    # Install Node.js dependencies
+    # Instal dependensi Node.js
     npm install
-    # or pnpm install or yarn install
+    # atau pnpm install atau yarn install
 
-    # Create a .env.local file
-    # Add your backend API URL
-    # Example .env.local:
-    # NEXT_PUBLIC_API_URL="http://127.0.0.1:8000" # Local backend
-    # Or use your deployed backend URL: NEXT_PUBLIC_API_URL="https://your-backend.onrender.com"
+    # Buat file .env.local
+    # Tambahkan URL API backend Anda
+    # Contoh .env.local:
+    # NEXT_PUBLIC_API_URL="http://127.0.0.1:8000" # Backend lokal
+    # Atau gunakan URL backend yang sudah di-deploy: NEXT_PUBLIC_API_URL="https://backend-anda.onrender.com"
 
     cd ..
     ```
 
-## Running the Application
+## Menjalankan Aplikasi
 
-1.  **Run the Backend:**
-    *   **Using Docker (Recommended for consistency):**
+1.  **Jalankan Backend:**
+    *   **Menggunakan Docker (Direkomendasikan untuk konsistensi):**
         ```bash
         cd backend
-        # Build the Docker image (only needed once or after changes)
+        # Bangun image Docker (hanya diperlukan sekali atau setelah ada perubahan)
         docker build -t pbo-tesseract-backend .
-        # Run the Docker container
+        # Jalankan kontainer Docker
         docker run -p 8000:8000 --env-file .env pbo-tesseract-backend
         ```
-    *   **Locally (Requires Tesseract installed):**
+    *   **Secara Lokal (Membutuhkan Tesseract terinstal):**
         ```bash
         cd backend
-        # Ensure virtual environment is active
-        # Ensure .env file is configured
+        # Pastikan lingkungan virtual aktif
+        # Pastikan file .env sudah dikonfigurasi
         uvicorn main:app --reload --port 8000
         ```
-    The backend API will be running at `http://127.0.0.1:8000`.
+    API backend akan berjalan di `http://127.0.0.1:8000`.
 
-2.  **Run the Frontend:**
+2.  **Jalankan Frontend:**
     ```bash
     cd frontend
-    # Ensure .env.local points to the correct backend URL
+    # Pastikan .env.local menunjuk ke URL backend yang benar
     npm run dev
-    # or pnpm dev or yarn dev
+    # atau pnpm dev atau yarn dev
     ```
-    The frontend development server will be running at `http://localhost:3000`.
+    Server pengembangan frontend akan berjalan di `http://localhost:3000`.
 
 ## Deployment
 
-*   **Backend:** The backend is designed to be deployed as a Docker container (see `backend/Dockerfile`). Platforms like Render can build and deploy directly from this Dockerfile.
-    *   **Environment Variables:** Ensure `SUPABASE_URL`, `SUPABASE_ANON_KEY` (if used), `ALLOWED_ORIGINS` (set to your deployed frontend URL), and `PORT` (usually provided by the platform) are configured in the deployment environment.
-    *   `TESSDATA_PREFIX` is set within the Dockerfile.
-*   **Frontend:** The Next.js frontend can be deployed to platforms like Vercel or Render (as a Static Site or Web Service).
-    *   **Environment Variables:** Ensure `NEXT_PUBLIC_API_URL` is set to the deployed backend URL during the build process.
+*   **Backend:** Backend dirancang untuk di-deploy sebagai kontainer Docker (lihat `backend/Dockerfile`). Platform seperti Render dapat membangun dan men-deploy langsung dari Dockerfile ini.
+    *   **Variabel Lingkungan:** Pastikan `SUPABASE_URL`, `SUPABASE_ANON_KEY` (jika digunakan), `ALLOWED_ORIGINS` (atur ke URL frontend yang di-deploy), dan `PORT` (biasanya disediakan oleh platform) dikonfigurasi di lingkungan deployment.
+    *   `TESSDATA_PREFIX` diatur di dalam Dockerfile.
+*   **Frontend:** Frontend Next.js dapat di-deploy ke platform seperti Vercel atau Render (sebagai Situs Statis atau Layanan Web).
+    *   **Variabel Lingkungan:** Pastikan `NEXT_PUBLIC_API_URL` diatur ke URL backend yang di-deploy selama proses build.
 
-## Supabase Setup (Optional)
+## Penyiapan Supabase (Opsional)
 
-If you want to use the feature to save OCR results to a database, you need to set up a Supabase project and create the required table.
+Jika Anda ingin menggunakan fitur untuk menyimpan hasil OCR ke database, Anda perlu menyiapkan proyek Supabase dan membuat tabel yang diperlukan.
 
-1.  Create a new project on [Supabase](https://supabase.com/).
-2.  Navigate to the "SQL Editor" section in your Supabase project dashboard.
-3.  Run the following SQL command to create the `ocr_results` table:
+1.  Buat proyek baru di [Supabase](https://supabase.com/).
+2.  Navigasi ke bagian "SQL Editor" di dasbor proyek Supabase Anda.
+3.  Jalankan perintah SQL berikut untuk membuat tabel `ocr_results`:
 
 ```sql
 CREATE TABLE public.ocr_results (
@@ -138,25 +138,25 @@ CREATE TABLE public.ocr_results (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- Optional: Enable Row Level Security (Recommended)
+-- Opsional: Aktifkan Keamanan Tingkat Baris (Row Level Security - Direkomendasikan)
 ALTER TABLE public.ocr_results ENABLE ROW LEVEL SECURITY;
 
--- Optional: Create policies (Example: Allow public read access)
--- Adjust policies based on your application's needs.
--- CREATE POLICY "Allow public read access" ON public.ocr_results
+-- Opsional: Buat kebijakan (Contoh: Izinkan akses baca publik)
+-- Sesuaikan kebijakan berdasarkan kebutuhan aplikasi Anda.
+-- CREATE POLICY "Izinkan akses baca publik" ON public.ocr_results
 -- FOR SELECT USING (true);
 
--- CREATE POLICY "Allow authenticated insert" ON public.ocr_results
+-- CREATE POLICY "Izinkan penyisipan terotentikasi" ON public.ocr_results
 -- FOR INSERT TO authenticated WITH CHECK (true);
 ```
 
-4.  Get your project's **URL** and **anon key** from the Supabase project settings (API section).
-5.  Add these keys to your backend's `.env` file:
+4.  Dapatkan **URL** dan **kunci anon** proyek Anda dari pengaturan proyek Supabase (bagian API).
+5.  Tambahkan kunci-kunci ini ke file `.env` backend Anda:
     ```
-    SUPABASE_URL="your_supabase_url"
-    SUPABASE_ANON_KEY="your_supabase_anon_key"
+    SUPABASE_URL="url_supabase_anda"
+    SUPABASE_ANON_KEY="kunci_anon_supabase_anda"
     ```
 
-## Live Demo
+## Demo Langsung
 
-Check out the live version deployed at: **[pangkywara.xyz](https://pangkywara.xyz)** 
+Lihat versi langsung yang di-deploy di: **[pangkywara.xyz](https://pangkywara.xyz)**
