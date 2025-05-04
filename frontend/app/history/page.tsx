@@ -6,7 +6,6 @@ import { AlertCircle, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useTranslation } from 'react-i18next';
 import Link from "next/link";
 
 // Interface for DB result
@@ -18,7 +17,6 @@ interface DbResult {
 }
 
 export default function HistoryPage() {
-    const { t, i18n } = useTranslation();
     const [dbResults, setDbResults] = useState<DbResult[] | null>(null);
     const [isFetchingResults, setIsFetchingResults] = useState<boolean>(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -35,7 +33,6 @@ export default function HistoryPage() {
         setIsFetchingResults(true);
         setFetchError(null);
         try {
-            console.log(`Fetching results from: ${resultsUrl}`);
             const response = await fetch(resultsUrl);
             if (!response.ok) {
                 let errorMsg = `API Error: ${response.status} ${response.statusText}`;
@@ -52,7 +49,7 @@ export default function HistoryPage() {
             setDbResults(data);
         } catch (err: any) {
             console.error("Failed to fetch results:", err);
-            setFetchError(err.message || t('fetchDbError'));
+            setFetchError(err.message || 'Gagal mengambil hasil dari database.'); // Indonesian
             setDbResults(null);
         } finally {
             setIsFetchingResults(false);
@@ -69,15 +66,15 @@ export default function HistoryPage() {
     // Format date utility
     const formatDate = (dateString: string) => {
         try {
-            // Ensure i18n is ready before using its language property
-            const lang = i18n.isInitialized ? i18n.language : 'en'; // Default to 'en' if not ready
-            return new Date(dateString).toLocaleString(lang);
+            // Using Indonesian locale for date formatting
+            const lang = 'id-ID'; 
+            return new Date(dateString).toLocaleString(lang, { dateStyle: 'medium', timeStyle: 'short' });
         } catch (e) {
             return dateString; // Fallback
         }
     };
 
-    // Add a check for initialization
+    // Check for mount only (i18n check removed)
     if (!isMounted) {
         return ( // Simple loading state before mount
              <div className="min-h-screen flex items-center justify-center">
@@ -85,16 +82,6 @@ export default function HistoryPage() {
              </div>
         )
     }
-     if (!i18n.isInitialized) {
-        // or a loading indicator specific to i18n
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                 <Loader2 className="h-8 w-8 animate-spin" />
-                 <span className="ml-2">Loading translations...</span>
-            </div>
-        );
-    }
-
 
     return (
         <main className="min-h-screen flex flex-col items-center p-4 md:p-8 bg-gray-100 dark:bg-gray-900">
@@ -103,25 +90,25 @@ export default function HistoryPage() {
                      <Button variant="outline" size="sm" asChild>
                        <Link href="/" className="flex items-center gap-1">
                             <ArrowLeft className="w-4 h-4" />
-                            {t('backToMain')}
+                            Kembali ke Utama {/* Indonesian */}
                         </Link>
                     </Button>
                      <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-200">
-                         {t('dbResultsTitle')}
+                         Riwayat Hasil OCR {/* Indonesian */}
                      </h1>
                      {/* Placeholder to balance the header or add future controls */}
                      <div className="w-20"></div>
                  </div>
 
                 <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
-                     {t('dbResultsDescription')}
+                     Hasil OCR yang disimpan sebelumnya. {/* Indonesian */}
                  </p>
 
                 <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 md:p-6">
                     <div className="flex justify-end mb-4">
-                         <Button variant="ghost" size="sm" onClick={fetchResults} disabled={isFetchingResults} title={t('refreshDbButtonTooltip') ?? 'Refresh Table'} className="flex items-center gap-1">
+                         <Button variant="ghost" size="sm" onClick={fetchResults} disabled={isFetchingResults} title={'Muat Ulang Tabel'} className="flex items-center gap-1">
                              <RefreshCw className={`h-4 w-4 ${isFetchingResults ? 'animate-spin' : ''}`} />
-                             {t('refreshDbButton') ?? 'Refresh'}
+                             Muat Ulang {/* Indonesian */}
                          </Button>
                      </div>
 
@@ -129,7 +116,7 @@ export default function HistoryPage() {
                      {isFetchingResults && (
                          <div className="flex justify-center items-center py-10">
                              <Loader2 className="h-6 w-6 animate-spin text-gray-500 dark:text-gray-400" />
-                             <p className="ml-2 text-gray-500 dark:text-gray-400">{t('loadingDbResults')}</p>
+                             <p className="ml-2 text-gray-500 dark:text-gray-400">Memuat Hasil...</p> {/* Indonesian */}
                          </div>
                      )}
 
@@ -137,7 +124,7 @@ export default function HistoryPage() {
                      {fetchError && !isFetchingResults && (
                          <Alert variant="destructive" className="my-4">
                              <AlertCircle className="h-4 w-4" />
-                             <AlertTitle>{t('errorTitle')}</AlertTitle>
+                             <AlertTitle>Kesalahan</AlertTitle> {/* Indonesian */}
                              <AlertDescription>{fetchError}</AlertDescription>
                          </Alert>
                      )}
@@ -148,10 +135,11 @@ export default function HistoryPage() {
                              <Table>
                                  <TableHeader>
                                       <TableRow>
-                                         <TableHead className="w-[100px]">{t('dbHeaderId')}</TableHead>
-                                         <TableHead>{t('dbHeaderFileName')}</TableHead>
-                                         <TableHead>{t('dbHeaderExtractedText')}</TableHead>
-                                         <TableHead className="text-right min-w-[150px]">{t('dbHeaderProcessedAt')}</TableHead>
+                                         {/* Indonesian Table Headers */}
+                                         <TableHead className="w-[100px]">ID</TableHead>
+                                         <TableHead>Nama Berkas</TableHead>
+                                         <TableHead>Teks Hasil Ekstraksi</TableHead>
+                                         <TableHead className="text-right min-w-[150px]">Waktu Proses</TableHead>
                                      </TableRow>
                                  </TableHeader>
                                  <TableBody>
@@ -171,12 +159,13 @@ export default function HistoryPage() {
                          </div>
                      )}
 
-                    {/* Empty State */}
-                     {!isFetchingResults && !fetchError && (!dbResults || dbResults.length === 0) && (
-                         <p className="text-center text-gray-500 dark:text-gray-400 py-10">{t('noDbResults')}</p>
-                     )}
+                    {/* Empty State - Using ternary operator */}
+                    { !isFetchingResults && !fetchError && (!dbResults || dbResults.length === 0) 
+                      ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">Tidak ada hasil ditemukan di database.</p> /* Indonesian */
+                      : null 
+                    }
                 </div>
             </div>
         </main>
     );
-} 
+}

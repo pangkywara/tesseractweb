@@ -13,26 +13,29 @@ app = FastAPI(
 )
 
 # CORS Configuration
-# Read the frontend URL from environment variable, default to localhost for development
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-pangkywara_domain = "https://pangkywara.xyz"
+# Read allowed origins from environment variable (comma-separated string)
+# Default to localhost for development if not set
+allowed_origins_str = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000")
 
-origins = [
-    frontend_url, # From environment variable (Render)
-    "http://localhost:3000", # Local Next.js dev server
-    pangkywara_domain # Explicitly add your domain
-]
-# Remove duplicates if frontend_url is one of the others
-origins = list(set(origins))
+# Split the comma-separated string into a list
+# Remove any leading/trailing whitespace from each origin
+origins = [origin.strip() for origin in allowed_origins_str.split(',') if origin.strip()]
 
-print(f"Allowed CORS origins: {origins}")
+# Ensure localhost is present for local dev if using default
+if allowed_origins_str == "http://localhost:3000" and "http://localhost:3000" not in origins:
+    origins.append("http://localhost:3000")
+
+# Remove potential duplicates just in case
+origins = sorted(list(set(origins)))
+
+print(f"Configuring CORS for origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins, # Use the dynamically generated list
     allow_credentials=True,
-    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"] # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers

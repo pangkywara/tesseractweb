@@ -1,27 +1,20 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect, useMemo } from "react"
-import {AlertCircle, Loader2} from "lucide-react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import {AlertCircle, Loader2, Upload} from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
 import TopBar from '@/components/ocr/TopBar'
-import UploadCard from '@/components/ocr/UploadCard'
+import UploadCard, { ImageType } from '@/components/ocr/UploadCard'
 import ResultsDisplay from '@/components/ocr/ResultsDisplay'
 import CopiedToast from '@/components/ocr/CopiedToast'
 import type { OcrApiResponse, Point} from '@/lib/types' // Import from shared types
 
-// Interface for DB result
-interface DbResult {
-    id: number;
-    file_name: string | null;
-    extracted_text: string | null;
-    processed_at: string; // Keep as string for simplicity, format later
-}
+// Interface for DB result (Moved to history page)
 
 export default function ImageToTextConverter() {
-  const { t, i18n } = useTranslation();
+  // Removed mock t function and i18n object
+
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string>("")
@@ -31,6 +24,7 @@ export default function ImageToTextConverter() {
   const [copiedWord, setCopiedWord] = useState<string | null>(null)
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["eng", "ind"]) // Default languages
   const [saveResult, setSaveResult] = useState<boolean>(true) // Default to saving
+  const [imageType, setImageType] = useState<ImageType>('default') // Re-add imageType state
 
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [displayDimensions, setDisplayDimensions] = useState<{width: number, height: number} | null>(null);
@@ -45,69 +39,11 @@ export default function ImageToTextConverter() {
 
   // State to track client-side mounting
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
+  const dragCounter = useRef(0); // Ref to handle nested drag enter/leave events
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-  const uploadUrl = `${apiUrl}/ocr/upload`;
-  const resultsUrl = `${apiUrl}/ocr/results`; // URL for fetching results
-
-  // Moved useEffect for ResizeObserver before the conditional return
-  useEffect(() => {
-    // The effect hook itself runs on every render after the first,
-    // but the logic inside can depend on state/props.
-    const currentRef = imageContainerRef.current;
-    if (imagePreviewUrl && currentRef) {
-        const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const { width, height } = entry.contentRect;
-                // Only update if dimensions actually change to avoid loops
-                // Use functional update for setDisplayDimensions if it depends on previous state
-                setDisplayDimensions(prevDims => {
-                    if (!prevDims || prevDims.width !== width || prevDims.height !== height) {
-                        console.log(`Image container resized to: ${width}x${height}`);
-                        return { width, height };
-                    }
-                    return prevDims; // No change
-                });
-            }
-        });
-        resizeObserver.observe(currentRef);
-
-        // Set initial dimensions if needed
-        const { offsetWidth, offsetHeight } = currentRef;
-        // Use functional update here too for consistency
-        setDisplayDimensions(prevDims => {
-             if (offsetWidth > 0 && offsetHeight > 0 && (!prevDims || prevDims.width !== offsetWidth || prevDims.height !== offsetHeight)) {
-                console.log(`Initial Image container dimensions: ${offsetWidth}x${offsetHeight}`);
-                return { width: offsetWidth, height: offsetHeight };
-            }
-            return prevDims; // No change or invalid initial dimensions
-        });
-
-        // Cleanup function
-        return () => resizeObserver.disconnect();
-    } else {
-        // Clear dimensions when image is removed or ref is not available
-        setDisplayDimensions(null);
-    }
-  }, [imagePreviewUrl]); // Dependency array remains the same
-
-  // Check for readiness: Wait for mount AND i18n initialization
-  if (!isMounted || !i18n.isInitialized) {
-    // Render loading indicator until ready to prevent hydration mismatch
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" />
-            {/* Optional: Add a subtle loading text */}
-            {/* <span className="ml-2 text-gray-500 dark:text-gray-400">Loading UI...</span> */}
-        </div>
-    );
-  }
-
-  // Calculate params here because they are needed for the ResultsDisplay props
-  const { scaleX, scaleY, offsetX, offsetY } = useMemo(() => { 
+  // --- Memo Hooks ---
+  const { scaleX, scaleY, offsetX, offsetY } = useMemo(() => {
     let calcScaleX = 1;
     let calcScaleY = 1;
     let calcOffsetX = 0;
@@ -137,16 +73,40 @@ export default function ImageToTextConverter() {
     }
     return { scaleX: calcScaleX, scaleY: calcScaleY, offsetX: calcOffsetX, offsetY: calcOffsetY };
   }, [ocrResult, displayDimensions, naturalDimensions]);
+  // --- End scaling parameter calculation ---
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    resetAll();
-    setError(null); 
+  // Define resetAll first as it might be used in processSelectedFile's dependencies if needed
+  const resetAll = useCallback(() => { // Wrap in useCallback if it relies on setters
+    setImageFile(null)
+    setImagePreviewUrl(null)
+    setFileName("")
+    setOcrResult(null)
+    setError(null)
+    setDisplayDimensions(null)
+    setNaturalDimensions(null)
+    setCopiedWord(null)
+    setIsDragging(false);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setSelectedText("");
+    setSelectedWordIndices([]);
+    const fileInput = document.getElementById("file-upload") as HTMLInputElement | null
+    if (fileInput) {
+      fileInput.value = ""
+    }
+    setImageType('default'); // Reset image type
+  }, []); // Empty dependencies as it only uses setters
+
+  // Define processSelectedFile using useCallback
+  const processSelectedFile = useCallback((file: File) => {
+    resetAll(); // Call the memoized version
+    setError(null);
 
     const validTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!validTypes.includes(file.type)) {
-      setError(t('invalidFileType'));
+      setError('Jenis berkas tidak valid. Silakan unggah JPEG atau PNG.');
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
       return;
     }
 
@@ -159,6 +119,18 @@ export default function ImageToTextConverter() {
       setImagePreviewUrl(previewUrl);
     }
     reader.readAsDataURL(file);
+  }, [resetAll]); // Add resetAll as dependency
+
+  // Define other handlers (can be simple const if not passed as prop or needing useCallback)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processSelectedFile(file);
+  }
+
+  const handleFileDrop = (file: File) => {
+    if (!file) return
+    processSelectedFile(file);
   }
 
   const handleLanguageChange = (language: string, checked: boolean | string) => {
@@ -169,13 +141,26 @@ export default function ImageToTextConverter() {
     );
   };
 
+  const handleWordClick = (text: string) => {
+    if (text === selectedText && selectedText !== "") {
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        setCopiedWord(text);
+        setTimeout(() => setCopiedWord(null), 1500);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        setError('Gagal menyalin teks.') // Indonesian
+    });
+  };
+
+  // Define extractTextFromImage (async function)
   const extractTextFromImage = async () => {
     if (!imageFile) {
-      setError(t('uploadFirst'))
+      setError('Silakan unggah gambar terlebih dahulu.')
       return
     }
     if (selectedLanguages.length === 0) {
-        setError(t('selectLangFirst'))
+        setError('Silakan pilih setidaknya satu bahasa.')
         return
     }
 
@@ -190,10 +175,10 @@ export default function ImageToTextConverter() {
         formData.append('languages', lang);
     });
     formData.append('save_result', String(saveResult));
-
-    console.log("Sending form data:", Object.fromEntries(formData));
+    formData.append('image_type', imageType); // Send the selected image type
 
     try {
+      console.log("Sending request FormData:", Object.fromEntries(formData));
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
@@ -206,12 +191,13 @@ export default function ImageToTextConverter() {
           errorMsg = errorData.detail || JSON.stringify(errorData);
         } catch (e) {
           console.error("Could not parse error response:", e);
-          errorMsg = await response.text();
+          // Avoid reading text() if json() failed, read original response if needed
+          // errorMsg = await response.text(); // This causes the 'already read' error
         }
         if (errorMsg.includes("Tesseract is not installed")) {
-            errorMsg = t('tesseractNotFound');
+            errorMsg = 'Tesseract tidak terpasang atau tidak ditemukan di PATH server.'; // Indonesian
         } else if (errorMsg.includes("Failed to init API")) {
-             errorMsg = t('tessdataNotFound');
+             errorMsg = 'Gagal menginisialisasi Tesseract. Pastikan data bahasa (tessdata) benar.'; // Indonesian
         }
         throw new Error(errorMsg);
       }
@@ -220,17 +206,16 @@ export default function ImageToTextConverter() {
 
       if (!data.words || data.words.length === 0) {
           if (data.full_text) {
-              console.log("API returned full_text but no word data.")
               setOcrResult(data);
           } else {
-              setError(t('noTextDetected'))
+              setError('Tidak ada teks yang terdeteksi.') // Indonesian
               setOcrResult(null)
           }
       } else {
           setOcrResult(data)
       }
     } catch (err: any) {
-      setError(err.message || t('apiError'))
+      setError(err.message || 'Terjadi kesalahan saat menghubungi API.') // Indonesian
       console.error("API call failed:", err)
       setOcrResult(null)
     } finally {
@@ -238,99 +223,172 @@ export default function ImageToTextConverter() {
     }
   }
 
-  const handleWordClick = (text: string) => {
-    // Check if this call is for the multi-word selection
-    if (text === selectedText && selectedText !== "") {
-      console.log(`Copying selected text: "${text}"`);
-    }
-    navigator.clipboard.writeText(text).then(() => {
-        console.log(`Copied: ${text}`);
-        setCopiedWord(text);
-        setTimeout(() => setCopiedWord(null), 1500);
-    }).catch(err => {
-        console.error('Failed to copy text: ', err);
-        setError(t('copyFail'))
-    });
-  };
+  // --- Effect Hooks ---
+  useEffect(() => {
+    setIsMounted(true);
 
-  const resetAll = () => {
-    setImageFile(null)
-    setImagePreviewUrl(null)
-    setFileName("")
-    setOcrResult(null)
-    setError(null) // Clear error on reset
-    setDisplayDimensions(null)
-    setNaturalDimensions(null)
-    setCopiedWord(null)
-    // Clear selection states
-    setIsDragging(false);
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setSelectedText("");
-    setSelectedWordIndices([]);
-    // Don't reset language/save preferences on simple reset
-    // setSelectedLanguages(["eng", "ind"])
-    // setSaveResult(true)
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement | null
-    if (fileInput) {
-      fileInput.value = ""
+    // --- Fullscreen Drag Handlers ---
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current++;
+      // Show overlay when files enter the window
+      if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+          setIsDraggingOverWindow(true);
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current--;
+      // Hide overlay only when the drag truly leaves the window
+      if (dragCounter.current <= 0) {
+          setIsDraggingOverWindow(false);
+          dragCounter.current = 0;
+      }
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault(); // Crucial to allow dropping
+      e.stopPropagation();
+       if (e.dataTransfer) {
+         e.dataTransfer.dropEffect = 'copy';
+      }
+      // No longer setting state to true here - rely on dragenter
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Ensure state is reset immediately on drop
+      setIsDraggingOverWindow(false);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        e.dataTransfer.clearData();
+        processSelectedFile(file);
+      }
+    };
+
+    // Re-add dragend handler as a failsafe cleanup
+    const handleWindowDragEnd = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Force reset state and counter when drag operation ends completely
+        setIsDraggingOverWindow(false);
+        dragCounter.current = 0;
+    };
+
+    // Add listeners
+    window.addEventListener('dragenter', handleWindowDragEnter);
+    window.addEventListener('dragleave', handleWindowDragLeave);
+    window.addEventListener('dragover', handleWindowDragOver);
+    window.addEventListener('drop', handleWindowDrop);
+    window.addEventListener('dragend', handleWindowDragEnd); // Added dragend listener
+
+    // Cleanup listeners on component unmount
+    return () => {
+      window.removeEventListener('dragenter', handleWindowDragEnter);
+      window.removeEventListener('dragleave', handleWindowDragLeave);
+      window.removeEventListener('dragover', handleWindowDragOver);
+      window.removeEventListener('drop', handleWindowDrop);
+      window.removeEventListener('dragend', handleWindowDragEnd); // Cleanup dragend listener
+    };
+  }, [processSelectedFile]);
+
+  // useEffect for ResizeObserver
+  useEffect(() => {
+    const currentRef = imageContainerRef.current;
+    if (imagePreviewUrl && currentRef) {
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                setDisplayDimensions(prevDims => {
+                    if (!prevDims || prevDims.width !== width || prevDims.height !== height) {
+                        return { width, height };
+                    }
+                    return prevDims;
+                });
+            }
+        });
+        resizeObserver.observe(currentRef);
+
+        const { offsetWidth, offsetHeight } = currentRef;
+        setDisplayDimensions(prevDims => {
+             if (offsetWidth > 0 && offsetHeight > 0 && (!prevDims || prevDims.width !== offsetWidth || prevDims.height !== offsetHeight)) {
+                return { width: offsetWidth, height: offsetHeight };
+            }
+            return prevDims;
+        });
+
+        return () => resizeObserver.disconnect();
+    } else {
+        setDisplayDimensions(null);
     }
+  }, [imagePreviewUrl]);
+
+  // Check for readiness: Wait for mount
+  if (!isMounted) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" />
+        </div>
+    );
   }
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-  };
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const uploadUrl = `${apiUrl}/ocr/upload`;
+  // resultsUrl moved to history page
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-4xl space-y-6">
-        {/* Use TopBar component */}
-        <TopBar
-          isMounted={isMounted}
-          i18n={i18n}
-          t={t}
-          changeLanguage={changeLanguage}
-        />
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 bg-gray-100 dark:bg-gray-900 relative">
+      {/* Fullscreen Drop Overlay */} 
+      {isDraggingOverWindow && (
+        <div className="fixed inset-0 bg-white/80 dark:bg-black/70 z-50 flex flex-col items-center justify-center pointer-events-none">
+          <Upload className="h-24 w-24 text-blue-500 dark:text-blue-400 mb-4" />
+          <p className="text-2xl font-semibold text-blue-700 dark:text-blue-300">
+            Jatuhkan gambar di mana saja untuk unggah
+          </p>
+        </div>
+      )}
 
-        {/* Main Title */}
+      <div className="w-full max-w-4xl space-y-6 relative z-10">
+        <TopBar isMounted={isMounted} />
+
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800 dark:text-gray-200">
-            {t('mainTitle')}
+            Kelompok 3 OCR
         </h1>
 
-        {/* Use UploadCard component */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <UploadCard
-            t={t}
-            imagePreviewUrl={imagePreviewUrl}
-            fileName={fileName}
-            selectedLanguages={selectedLanguages}
-            handleLanguageChange={handleLanguageChange}
-            saveResult={saveResult}
-            setSaveResult={setSaveResult}
-            handleImageUpload={handleImageUpload}
-            resetAll={resetAll}
-            extractTextFromImage={extractTextFromImage}
-            isLoading={isLoading}
-            ocrResult={ocrResult}
-            imageFile={imageFile}
-          />
-        </motion.div>
+        <UploadCard
+          imagePreviewUrl={imagePreviewUrl}
+          fileName={fileName}
+          selectedLanguages={selectedLanguages}
+          handleLanguageChange={handleLanguageChange}
+          saveResult={saveResult}
+          setSaveResult={setSaveResult}
+          imageType={imageType}
+          setImageType={setImageType}
+          handleImageUpload={handleImageUpload}
+          resetAll={resetAll}
+          extractTextFromImage={extractTextFromImage}
+          isLoading={isLoading}
+          ocrResult={ocrResult}
+          imageFile={imageFile}
+          onFileDrop={handleFileDrop}
+        />
 
-        {/* Error Alert (remains here) */}
         {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700/50">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertTitle className="text-red-800 dark:text-red-300">{t('errorTitle')}</AlertTitle>
-              <AlertDescription className="text-red-700 dark:text-red-400">{error}</AlertDescription>
+          <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700/50">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertTitle>Kesalahan</AlertTitle> {/* Indonesian */}
+            <AlertDescription className="text-red-700 dark:text-red-400">{error}</AlertDescription>
           </Alert>
-          </motion.div>
         )}
 
-        {/* Use ResultsDisplay component (conditionally rendered) */}
         {(imagePreviewUrl || ocrResult) && (
             <ResultsDisplay
-                t={t}
                 imagePreviewUrl={imagePreviewUrl}
                 ocrResult={ocrResult}
                 imageContainerRef={imageContainerRef}
@@ -359,8 +417,10 @@ export default function ImageToTextConverter() {
             />
         )}
 
-        {/* Use CopiedToast component */}
-        <CopiedToast t={t} copiedWord={copiedWord} selectedText={selectedText} />
+        <CopiedToast
+            copiedWord={copiedWord}
+            selectedText={selectedText}
+         />
 
       </div>
     </main>
