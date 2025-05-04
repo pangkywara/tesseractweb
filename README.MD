@@ -1,45 +1,162 @@
-// ... existing code ...
-2.  **Penyiapan Backend:**
+# Kelompok 3 - Tesseract OCR Web App
+
+[![Demo](https://img.shields.io/badge/Demo-Visit%20Live%20App-blue?style=for-the-badge&logo=vercel)](https://pangkywara.xyz)
+
+This project is a web application that performs Optical Character Recognition (OCR) on uploaded images using Tesseract. It features a Next.js frontend and a FastAPI backend, with results optionally saved to a Supabase database.
+
+## Features
+
+*   **Image Upload:** Upload JPEG/PNG images via drag-and-drop or file selector.
+*   **Multi-language OCR:** Supports English (`eng`) and Indonesian (`ind`) text recognition.
+*   **Bounding Box Display:** Shows recognized words overlaid on the processed image.
+*   **Text Extraction:** Provides the full extracted text and allows copying individual words.
+*   **Database Integration (Optional):** Option to save extracted text results to Supabase.
+*   **Dockerized Backend:** Backend is containerized with Docker for deployment consistency.
+*   **Image Type Detection:** Allows specifying if the image is a general document or a chat screenshot for potentially different preprocessing/PSM settings.
+
+## Technology Stack
+
+*   **Frontend:** Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
+*   **Backend:** FastAPI, Python, Pytesseract, OpenCV-Python, Uvicorn, Gunicorn
+*   **Database:** Supabase (PostgreSQL)
+*   **Deployment:** Docker, Render (or similar platform)
+
+## Setup and Installation
+
+### Prerequisites
+
+*   Node.js (v18 or later recommended)
+*   npm or pnpm or yarn
+*   Python (v3.11 recommended)
+*   pip
+*   Git
+*   Docker (for building/running the backend container)
+*   Supabase Account (optional, for database saving)
+*   Tesseract Installation (for local backend development - see [Tesseract Docs](https://tesseract-ocr.github.io/tessdoc/Installation.html))
+
+### Installation Steps
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repository-url>
+    cd <repository-folder>
+    ```
+
+2.  **Backend Setup:**
     ```bash
     cd backend
 
-    # Buat dan aktifkan lingkungan virtual (direkomendasikan)
+    # Create and activate a virtual environment (recommended)
     python -m venv .venv
-    # Di Windows
+    # On Windows
     .\.venv\Scripts\activate
-    # Di macOS/Linux
+    # On macOS/Linux
     # source .venv/bin/activate
 
-    # Instal dependensi Python
+    # Install Python dependencies
     pip install -r requirements.txt
 
-    # Buat file .env dari .env.example (jika disediakan) atau secara manual
-    # Tambahkan URL Supabase dan Kunci Anon Anda jika menggunakan fitur DB.
-    # Jika menjalankan backend secara lokal (tanpa Docker) dan Tesseract tidak ada di PATH sistem Anda,
-    # tambahkan juga path ke executable Tesseract.
-    # Contoh .env:
-    # SUPABASE_URL="url_supabase_anda"
-    # SUPABASE_ANON_KEY="kunci_anon_supabase_anda"
-    # ALLOWED_ORIGINS="http://localhost:3000,https://domain-frontend-anda.com" # Tambahkan URL frontend Anda untuk CORS
-    # TESSERACT_CMD="C:\Program Files\Tesseract-OCR\tesseract.exe" # Contoh untuk Windows, sesuaikan path jika perlu
+    # Create a .env file from .env.example (if provided) or manually
+    # Add your Supabase URL and Anon Key if using the DB feature
+    # Example .env:
+    # SUPABASE_URL="your_supabase_url"
+    # SUPABASE_ANON_KEY="your_supabase_anon_key"
+    # ALLOWED_ORIGINS="http://localhost:3000,https://your-frontend-domain.com" # Add your frontend URL for CORS
 
     cd ..
     ```
-// ... existing code ...
-1.  **Jalankan Backend:**
-    *   **Menggunakan Docker (Direkomendasikan untuk konsistensi):**
-        ```bash
-// ... existing code ...
-        docker run -p 8000:8000 --env-file .env pbo-tesseract-backend
-        ```
-    *   **Secara Lokal (Membutuhkan Tesseract terinstal):**
-        *   Pastikan Tesseract terinstal di sistem Anda dan dapat diakses.
-        *   Jika Tesseract tidak berada di PATH sistem, pastikan Anda telah menambahkan variabel `TESSERACT_CMD` ke file `.env` di direktori `backend`, menunjuk ke lokasi tesseract executable (lihat contoh di bagian Penyiapan Backend).
+    *Note: For local backend development without Docker, ensure Tesseract is installed and its `tessdata` folder (containing `eng.traineddata` and `ind.traineddata`) is accessible. You might need to set the `TESSDATA_PREFIX` environment variable locally.* 
+
+3.  **Frontend Setup:**
+    ```bash
+    cd frontend
+
+    # Install Node.js dependencies
+    npm install
+    # or pnpm install or yarn install
+
+    # Create a .env.local file
+    # Add your backend API URL
+    # Example .env.local:
+    # NEXT_PUBLIC_API_URL="http://127.0.0.1:8000" # Local backend
+    # Or use your deployed backend URL: NEXT_PUBLIC_API_URL="https://your-backend.onrender.com"
+
+    cd ..
+    ```
+
+## Running the Application
+
+1.  **Run the Backend:**
+    *   **Using Docker (Recommended for consistency):**
         ```bash
         cd backend
-        # Pastikan lingkungan virtual aktif
-        # Pastikan file .env sudah dikonfigurasi (termasuk TESSERACT_CMD jika perlu)
+        # Build the Docker image (only needed once or after changes)
+        docker build -t pbo-tesseract-backend .
+        # Run the Docker container
+        docker run -p 8000:8000 --env-file .env pbo-tesseract-backend
+        ```
+    *   **Locally (Requires Tesseract installed):**
+        ```bash
+        cd backend
+        # Ensure virtual environment is active
+        # Ensure .env file is configured
         uvicorn main:app --reload --port 8000
         ```
-    API backend akan berjalan di `http://127.0.0.1:8000`.
-// ... existing code ...
+    The backend API will be running at `http://127.0.0.1:8000`.
+
+2.  **Run the Frontend:**
+    ```bash
+    cd frontend
+    # Ensure .env.local points to the correct backend URL
+    npm run dev
+    # or pnpm dev or yarn dev
+    ```
+    The frontend development server will be running at `http://localhost:3000`.
+
+## Deployment
+
+*   **Backend:** The backend is designed to be deployed as a Docker container (see `backend/Dockerfile`). Platforms like Render can build and deploy directly from this Dockerfile.
+    *   **Environment Variables:** Ensure `SUPABASE_URL`, `SUPABASE_ANON_KEY` (if used), `ALLOWED_ORIGINS` (set to your deployed frontend URL), and `PORT` (usually provided by the platform) are configured in the deployment environment.
+    *   `TESSDATA_PREFIX` is set within the Dockerfile.
+*   **Frontend:** The Next.js frontend can be deployed to platforms like Vercel or Render (as a Static Site or Web Service).
+    *   **Environment Variables:** Ensure `NEXT_PUBLIC_API_URL` is set to the deployed backend URL during the build process.
+
+## Supabase Setup (Optional)
+
+If you want to use the feature to save OCR results to a database, you need to set up a Supabase project and create the required table.
+
+1.  Create a new project on [Supabase](https://supabase.com/).
+2.  Navigate to the "SQL Editor" section in your Supabase project dashboard.
+3.  Run the following SQL command to create the `ocr_results` table:
+
+```sql
+CREATE TABLE public.ocr_results (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  file_name TEXT NULL,
+  extracted_text TEXT NULL,
+  processed_at TIMESTAMPTZ DEFAULT now() NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Optional: Enable Row Level Security (Recommended)
+ALTER TABLE public.ocr_results ENABLE ROW LEVEL SECURITY;
+
+-- Optional: Create policies (Example: Allow public read access)
+-- Adjust policies based on your application's needs.
+-- CREATE POLICY "Allow public read access" ON public.ocr_results
+-- FOR SELECT USING (true);
+
+-- CREATE POLICY "Allow authenticated insert" ON public.ocr_results
+-- FOR INSERT TO authenticated WITH CHECK (true);
+```
+
+4.  Get your project's **URL** and **anon key** from the Supabase project settings (API section).
+5.  Add these keys to your backend's `.env` file:
+    ```
+    SUPABASE_URL="your_supabase_url"
+    SUPABASE_ANON_KEY="your_supabase_anon_key"
+    ```
+
+## Live Demo
+
+Check out the live version deployed at: **[pangkywara.xyz](https://pangkywara.xyz)** 
