@@ -38,7 +38,7 @@ Proyek ini adalah aplikasi web yang melakukan Pengenalan Karakter Optik (OCR) pa
 
 1.  **Kloning repositori:**
     ```bash
-    git clone <url-repositori-anda>
+    git clone https://github.com/pangkywara/tesseractweb.git
     cd <folder-repositori>
     ```
 
