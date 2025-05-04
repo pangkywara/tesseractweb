@@ -38,7 +38,7 @@ This project is a web application that performs Optical Character Recognition (O
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/pangkywara/tesseractweb.git
     cd <repository-folder>
     ```
 
