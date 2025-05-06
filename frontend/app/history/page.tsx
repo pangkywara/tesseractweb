@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
-import { AlertCircle, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useReducer } from "react";
+import { AlertCircle, Loader2, RefreshCw, ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +21,29 @@ export default function HistoryPage() {
     const [isFetchingResults, setIsFetchingResults] = useState<boolean>(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [isMounted, setIsMounted] = useState(false);
+
+    // --- State for Deleting --- //
+    // Reducer to manage loading state for individual row deletions
+    type DeletingState = {
+        [key: number]: boolean; // Map of resultId to deleting status
+    };
+    type DeletingAction = 
+        | { type: 'START_DELETE'; id: number }
+        | { type: 'END_DELETE'; id: number };
+
+    function deletingReducer(state: DeletingState, action: DeletingAction): DeletingState {
+        switch (action.type) {
+            case 'START_DELETE':
+                return { ...state, [action.id]: true };
+            case 'END_DELETE':
+                return { ...state, [action.id]: false };
+            default:
+                return state;
+        }
+    }
+    const [deletingStatus, dispatchDeleting] = useReducer(deletingReducer, {});
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    // ------------------------- //
 
     useEffect(() => {
         setIsMounted(true);
@@ -62,6 +85,48 @@ export default function HistoryPage() {
             fetchResults();
         }
     }, [isMounted]); // Depend on isMounted
+
+    // --- Delete Function --- //
+    const handleDelete = async (id: number) => {
+        // Simple confirmation
+        if (!window.confirm(`Apakah Anda yakin ingin menghapus hasil dengan ID ${id}?`)) {
+            return;
+        }
+
+        dispatchDeleting({ type: 'START_DELETE', id });
+        setDeleteError(null); // Clear previous delete errors
+
+        const deleteUrl = `${resultsUrl}/${id}`; // Construct URL with ID
+
+        try {
+            const response = await fetch(deleteUrl, {
+                method: 'DELETE',
+            });
+
+            if (response.status === 204) { // Check for No Content success
+                // Success: Update the state to remove the item
+                setDbResults(prevResults => prevResults?.filter(result => result.id !== id) || null);
+                console.log(`Successfully deleted result ${id}`);
+            } else {
+                // Handle other non-204 responses as errors
+                let errorMsg = `Gagal menghapus: ${response.status} ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.detail || JSON.stringify(errorData);
+                } catch (e) {
+                    // Ignore error if response has no body or isn't JSON
+                    console.warn("Could not parse error response body for delete");
+                }
+                throw new Error(errorMsg);
+            }
+        } catch (err: any) {
+            console.error(`Failed to delete result ${id}:`, err);
+            setDeleteError(err.message || `Gagal menghapus hasil ID ${id}.`);
+        } finally {
+            dispatchDeleting({ type: 'END_DELETE', id });
+        }
+    };
+    // --------------------- //
 
     // Format date utility
     const formatDate = (dateString: string) => {
@@ -140,6 +205,7 @@ export default function HistoryPage() {
                                          <TableHead>Nama Berkas</TableHead>
                                          <TableHead>Teks Hasil Ekstraksi</TableHead>
                                          <TableHead className="text-right min-w-[150px]">Waktu Proses</TableHead>
+                                         <TableHead className="text-right">Aksi</TableHead> {/* Indonesian */} 
                                      </TableRow>
                                  </TableHeader>
                                  <TableBody>
@@ -152,6 +218,24 @@ export default function HistoryPage() {
                                                   {result.extracted_text ? `${result.extracted_text.substring(0, 50)}...` : '-'}
                                               </TableCell>
                                               <TableCell className="text-right text-xs whitespace-nowrap">{formatDate(result.processed_at)}</TableCell>
+                                              {/* --- Delete Button Cell --- */}
+                                              <TableCell className="text-right">
+                                                 <Button
+                                                     variant="ghost" 
+                                                     size="icon" 
+                                                     onClick={() => handleDelete(result.id)}
+                                                     disabled={deletingStatus[result.id] || isFetchingResults}
+                                                     title={`Hapus ID ${result.id}`}
+                                                     className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                                                 >
+                                                     {deletingStatus[result.id] ? (
+                                                         <Loader2 className="h-4 w-4 animate-spin" />
+                                                     ) : (
+                                                         <Trash2 className="h-4 w-4" />
+                                                     )}
+                                                 </Button>
+                                             </TableCell>
+                                             {/* ----------------------- */}
                                           </TableRow>
                                      ))}
                                  </TableBody>
@@ -164,6 +248,15 @@ export default function HistoryPage() {
                       ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">Tidak ada hasil ditemukan di database.</p> /* Indonesian */
                       : null 
                     }
+
+                    {/* Display Delete Error */} 
+                    {deleteError && (
+                         <Alert variant="destructive" className="mt-4">
+                             <AlertCircle className="h-4 w-4" />
+                             <AlertTitle>Kesalahan Hapus</AlertTitle> {/* Indonesian */}
+                             <AlertDescription>{deleteError}</AlertDescription>
+                         </Alert>
+                     )}
                 </div>
             </div>
         </main>
