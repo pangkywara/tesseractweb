@@ -114,7 +114,7 @@ async def save_result_to_db(
 # --- Function to Delete Result from DB ---
 async def delete_result_from_db(
     supabase_client: Client,
-    result_id: int
+    result_id: str
 ):
     """Menghapus hasil OCR dari database Supabase berdasarkan ID."""
     try:
