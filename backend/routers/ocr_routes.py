@@ -85,4 +85,25 @@ async def get_ocr_results(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Gagal mengambil hasil dari database: {e}") 
+        raise HTTPException(status_code=500, detail=f"Gagal mengambil hasil dari database: {e}")
+
+@router.delete("/results/{result_id}", status_code=204) # 204 No Content is typical for successful DELETE
+async def delete_ocr_result(
+    result_id: int,
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """
+    Menghapus hasil OCR dari database berdasarkan ID.
+    Mengembalikan status 204 jika berhasil.
+    """
+    try:
+        await ocr_service.delete_result_from_db(supabase_client, result_id)
+        # No need to return content on 204
+        return None # Return None explicitly for clarity with 204
+    except HTTPException as e:
+        # Re-raise HTTPExceptions (e.g., 404 Not Found or 500 from service)
+        raise e
+    except Exception as e:
+        # Catch unexpected errors during the delete process
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan tak terduga saat menghapus hasil: {e}") 
