@@ -10,7 +10,7 @@ import Link from "next/link";
 
 // Interface for DB result
 interface DbResult {
-    id: number; // Assuming ID is number from DB
+    id: string; // Changed from number to string to match UUID
     file_name: string | null;
     extracted_text: string | null;
     processed_at: string; // Keep as string for simplicity, format later
@@ -25,11 +25,11 @@ export default function HistoryPage() {
     // --- State for Deleting --- //
     // Reducer to manage loading state for individual row deletions
     type DeletingState = {
-        [key: number]: boolean; // Map of resultId to deleting status
+        [key: string]: boolean; // Changed key from number to string
     };
     type DeletingAction = 
-        | { type: 'START_DELETE'; id: number }
-        | { type: 'END_DELETE'; id: number };
+        | { type: 'START_DELETE'; id: string } // Changed id from number to string
+        | { type: 'END_DELETE'; id: string }; // Changed id from number to string
 
     function deletingReducer(state: DeletingState, action: DeletingAction): DeletingState {
         switch (action.type) {
@@ -87,7 +87,7 @@ export default function HistoryPage() {
     }, [isMounted]); // Depend on isMounted
 
     // --- Delete Function --- //
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         // Simple confirmation
         if (!window.confirm(`Apakah Anda yakin ingin menghapus hasil dengan ID ${id}?`)) {
             return;
