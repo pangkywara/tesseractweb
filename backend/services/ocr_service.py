@@ -111,6 +111,41 @@ async def save_result_to_db(
         print(f"Background task: Error saving to Supabase for {filename}: {db_error}")
         traceback.print_exc() # Log detailed error
 
+# --- Function to Delete Result from DB ---
+async def delete_result_from_db(
+    supabase_client: Client,
+    result_id: int
+):
+    """Menghapus hasil OCR dari database Supabase berdasarkan ID."""
+    try:
+        print(f"Attempting to delete result with ID: {result_id}")
+        # Use .eq() for precise matching on the primary key 'id'
+        response = await supabase_client.table('ocr_results').delete().eq('id', result_id).execute()
+
+        # Check if any row was actually deleted (optional but good practice)
+        # Supabase v1 might have different response structure, adapt if needed
+        # Assuming v2 where response.data might indicate success/affected rows
+        if hasattr(response, 'data') and response.data:
+            print(f"Successfully deleted result ID: {result_id}. Response: {response.data}")
+            # If response.data is empty list, it means no row matched the ID
+            if not response.data:
+                 print(f"Warning: No result found with ID {result_id} to delete.")
+                 # Optionally raise an error if the ID *should* exist
+                 # raise HTTPException(status_code=404, detail=f"Result with ID {result_id} not found.")
+        elif hasattr(response, 'data') and not response.data:
+             print(f"Warning: No result found with ID {result_id} to delete (data attribute empty).")
+             # Optionally raise 404
+             # raise HTTPException(status_code=404, detail=f"Result with ID {result_id} not found.")
+        else:
+             print(f"Deleted result ID: {result_id}. Response structure might differ or operation had no effect.")
+
+
+    except Exception as db_error:
+        print(f"Error deleting result ID {result_id} from Supabase: {db_error}")
+        traceback.print_exc() # Log detailed error
+        # Re-raise as HTTPException to be caught by the router
+        raise HTTPException(status_code=500, detail=f"Database error while deleting result {result_id}: {db_error}")
+
 # --- Main OCR Service Function (Uses image_type) ---
 # Konsep OOP: Abstraksi
 # Fungsi perform_ocr bertindak sebagai interface utama service layer.
