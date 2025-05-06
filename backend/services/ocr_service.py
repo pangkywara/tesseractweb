@@ -120,7 +120,7 @@ async def delete_result_from_db(
     try:
         print(f"Attempting to delete result with ID: {result_id}")
         # Use .eq() for precise matching on the primary key 'id'
-        response = await supabase_client.table('ocr_results').delete().eq('id', result_id).execute()
+        response = supabase_client.table('ocr_results').delete().eq('id', result_id).execute()
 
         # Check if any row was actually deleted (optional but good practice)
         # Supabase v1 might have different response structure, adapt if needed
