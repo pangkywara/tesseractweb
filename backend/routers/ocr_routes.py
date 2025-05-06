@@ -3,9 +3,9 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, BackgroundTasks
 from typing import List, Optional
 from supabase import Client
-from ..services import ocr_service
-from ..dependencies import get_supabase_client
-from ..models.ocr_models import OcrResultResponse, DbOcrResult
+from services import ocr_service
+from dependencies import get_supabase_client
+from models.ocr_models import OcrResultResponse, DbOcrResult
 import traceback
 
 # Router ini tidak perlu prefix sendiri karena prefix sudah ditambahkan di main.py saat include_router
@@ -89,7 +89,7 @@ async def get_ocr_results(
 
 @router.delete("/results/{result_id}", status_code=204) # 204 No Content is typical for successful DELETE
 async def delete_ocr_result(
-    result_id: int,
+    result_id: str,
     supabase_client: Client = Depends(get_supabase_client)
 ):
     """
