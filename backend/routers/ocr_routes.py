@@ -1,11 +1,11 @@
 # Placeholder for OCR routes
 
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, BackgroundTasks
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from supabase import Client
-from services import ocr_service
-from dependencies import get_supabase_client
-from models.ocr_models import OcrResultResponse, DbOcrResult
+from ..services import ocr_service
+from ..dependencies import get_supabase_client
+from ..models.ocr_models import OcrResultResponse, DbOcrResult, OcrResultUpdateRequest
 import traceback
 
 # Router ini tidak perlu prefix sendiri karena prefix sudah ditambahkan di main.py saat include_router
@@ -85,7 +85,7 @@ async def get_ocr_results(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Gagal mengambil hasil dari database: {e}")
+        raise HTTPException(status_code=500, detail=f"Gagal mengambil hasil dari database: {e}") 
 
 @router.delete("/results/{result_id}", status_code=204) # 204 No Content is typical for successful DELETE
 async def delete_ocr_result(
@@ -97,13 +97,42 @@ async def delete_ocr_result(
     Mengembalikan status 204 jika berhasil.
     """
     try:
+        # The service function now handles image deletion from storage as well
         await ocr_service.delete_result_from_db(supabase_client, result_id)
-        # No need to return content on 204
-        return None # Return None explicitly for clarity with 204
+        return None 
     except HTTPException as e:
-        # Re-raise HTTPExceptions (e.g., 404 Not Found or 500 from service)
         raise e
     except Exception as e:
-        # Catch unexpected errors during the delete process
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan tak terduga saat menghapus hasil: {e}") 
+
+@router.put("/results/{result_id}", response_model=DbOcrResult)
+async def update_ocr_result_entry(
+    result_id: str,
+    extracted_text: Optional[str] = Form(None),
+    file_name: Optional[str] = Form(None),
+    new_image_file: Optional[UploadFile] = File(None),
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """
+    Memperbarui hasil OCR yang ada (teks, nama file, dan/atau gambar).
+    Jika new_image_file diberikan, gambar lama akan diganti.
+    """
+    try:
+        update_data_payload = OcrResultUpdateRequest(
+            extracted_text=extracted_text,
+            file_name=file_name 
+        )
+        
+        updated_result_dict = await ocr_service.update_ocr_result(
+            supabase_client=supabase_client,
+            result_id=result_id,
+            update_data=update_data_payload,
+            new_file=new_image_file
+        )
+        return DbOcrResult.model_validate(updated_result_dict)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan tak terduga saat memperbarui hasil: {e}") 
