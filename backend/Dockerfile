@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies
 # - Tesseract OCR core engine
 # - libgl1-mesa-glx: Required by OpenCV (cv2) for libGL.so.1
+# REMOVED language packs tesseract-ocr-eng and tesseract-ocr-ind from here
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
         tesseract-ocr \
@@ -40,10 +41,5 @@ EXPOSE ${PORT:-8000}
 ENV TESSDATA_PREFIX=/usr/share/tessdata
 
 # Command to run the application using Gunicorn with Uvicorn workers
-# - Binds to 0.0.0.0 to be accessible externally.
-# - Uses the PORT environment variable provided by Render (defaults to 8000 if not set).
-# - Sets 1 worker suitable for resource-constrained environments like Render free tier.
-# - Specifies UvicornWorker for ASGI compatibility (FastAPI).
-# - Increases timeout to 180 seconds to allow more time for potentially slow OCR tasks.
-# Using shell form (`sh -c "..."`) allows environment variable substitution for $PORT.
-CMD sh -c "exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 180 main:app" 
+# ... (CMD remains the same) ...
+CMD sh -c "exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 180 main:app"
