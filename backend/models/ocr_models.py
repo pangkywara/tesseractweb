@@ -40,6 +40,15 @@ class DbOcrResult(BaseModel):
     file_name: Optional[str] = None
     extracted_text: Optional[str] = None
     processed_at: datetime
+    image_url: Optional[str] = None # Added field for image URL
 
     class Config:
-        orm_mode = True # Enable ORM mode for compatibility if needed 
+        orm_mode = True # Enable ORM mode for compatibility if needed
+
+# Model for updating an OCR result
+class OcrResultUpdateRequest(BaseModel):
+    extracted_text: Optional[str] = None
+    file_name: Optional[str] = None # Added field for updating file_name
+    # Add other fields that can be updated, if any
+    # For example, if you want to allow changing the file_name (though less common for an update)
+    # file_name: Optional[str] = None 
