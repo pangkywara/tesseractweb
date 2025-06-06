@@ -2,7 +2,7 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Kunjungi%20Aplikasi%20Langsung-blue?style=for-the-badge&logo=vercel)](https://pangkywara.xyz)
 
-Proyek ini adalah aplikasi web yang melakukan Pengenalan Karakter Optik (OCR) pada gambar yang diunggah menggunakan Tesseract. Aplikasi ini memiliki frontend Next.js dan backend FastAPI, dengan hasil yang secara opsional dapat disimpan ke database Supabase beserta gambar aslinya yang disimpan di Supabase Storage.
+Proyek ini adalah aplikasi web yang melakukan Pengenalan Karakter Optik (OCR) pada gambar yang diunggah menggunakan Tesseract. Aplikasi ini memiliki frontend Next.js dan backend FastAPI, dengan hasil yang secara opsional dapat disimpan ke database Supabase beserta gambar aslinya yang disimpan di Supabase Storage (mohon untuk berhati-hati terhadap penggunaan RLS, karena ini hanya untuk diperuntukan uji coba tugas saja).
 
 ## Fitur
 
