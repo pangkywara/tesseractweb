@@ -1,4 +1,4 @@
-# Kelompok 3 - Aplikasi Web Tesseract OCR
+# Kelompok 3 - Aplikasi Web Tesseract OCR!
 
 [![Demo](https://img.shields.io/badge/Demo-Kunjungi%20Aplikasi%20Langsung-blue?style=for-the-badge&logo=vercel)](https://pangkywara.xyz)
 
